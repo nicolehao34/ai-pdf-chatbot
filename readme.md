@@ -1,6 +1,6 @@
 # Description of this tool
 
-Exam Review Bot (ERB)
+Exam Review Bot (ERB) for Final Exam Prep 
 
 
 # Higher-level Architecture
