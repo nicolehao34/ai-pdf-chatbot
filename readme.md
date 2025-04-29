@@ -1,6 +1,14 @@
-# Description of this tool
+# Description of Exam Review Bot
 
-Exam Review Bot (ERB) for Final Exam Prep 
+Exam Review Bot (ERB) is a custom intelligent retrieval and hybrid RAG system for final exam preparation. Specifically, it 
+
+- Extracts specific lecture PDFs from your course schedule.
+
+- Matches them to user questions (e.g., “What about transformers was discussed?”).
+
+- Supplements with internet knowledge (external search).
+
+- Summarizes and explain the content intelligently.
 
 
 # Higher-level Architecture
