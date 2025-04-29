@@ -1,3 +1,10 @@
 
+
+
+ERB/
+__pycache__/
+*.pyc
+.env
+
 # LangGraph API,  pretend .langgraph_api doesn't exist when you push or commit.
 .langgraph_api
