@@ -27,3 +27,10 @@ Exam Review Bot (ERB) is a custom intelligent retrieval and hybrid RAG system fo
 [LLM (OpenAI, Claude, or Local Model)]
       ↓
 [Answer to your Question]
+
+
+# To-Be-Implemented
+
+- Custom Indexing + Custom Vectorstore database
+- hybrid RAG system
+- ...
