@@ -13,13 +13,15 @@ from app.ai_service import AIService
 
 app = FastAPI(title="Exam Review Bot API")
 
-# Enable CORS
+# Enable CORS with more specific settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],  # Frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,
 )
 
 # Initialize components
@@ -117,6 +119,18 @@ async def clear_chat_history():
     chat_history.clear()
     ai_service.clear_memory()
     return {"message": "Chat history cleared successfully"}
+
+@app.get("/health")
+async def health_check():
+    return {
+        "status": "healthy",
+        "timestamp": datetime.now().isoformat(),
+        "services": {
+            "pdf_processor": "ready",
+            "document_store": "ready",
+            "ai_service": "ready" if ai_service.openai_api_key else "not configured"
+        }
+    }
 
 # Initialize chat history
 chat_history = []

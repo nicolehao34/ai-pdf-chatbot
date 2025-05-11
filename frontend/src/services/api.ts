@@ -6,6 +6,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  withCredentials: true, // Enable sending cookies
 });
 
 // Add request interceptor for handling auth tokens
@@ -18,6 +19,7 @@ api.interceptors.request.use(
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -26,11 +28,30 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      localStorage.removeItem('token');
-      window.location.href = '/login';
+    console.error('Response error:', error);
+    
+    // Handle network errors
+    if (!error.response) {
+      console.error('Network error - is the backend server running?');
+      return Promise.reject(new Error('Network error - please check if the backend server is running'));
     }
+
+    // Handle specific error cases
+    switch (error.response.status) {
+      case 401:
+        localStorage.removeItem('token');
+        window.location.href = '/login';
+        break;
+      case 404:
+        console.error('Resource not found:', error.response.data);
+        break;
+      case 500:
+        console.error('Server error:', error.response.data);
+        break;
+      default:
+        console.error('API error:', error.response.data);
+    }
+
     return Promise.reject(error);
   }
 );
