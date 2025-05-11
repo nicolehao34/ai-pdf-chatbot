@@ -4,9 +4,16 @@ import { ChatMessage, ChatResponse } from '../types/api';
 export const chatService = {
   // Send a message and get a response
   sendMessage: async (message: string, documentId?: string): Promise<ChatResponse> => {
-    const response = await api.post<ChatResponse>('/chat', {
-      message,
-      document_id: documentId,
+    const formData = new FormData();
+    formData.append('message', message);
+    if (documentId) {
+      formData.append('document_id', documentId);
+    }
+
+    const response = await api.post<ChatResponse>('/chat', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
     });
     return response.data;
   },

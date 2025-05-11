@@ -31,4 +31,10 @@ export const documentService = {
   deleteDocument: async (id: string): Promise<void> => {
     await api.delete(`/documents/${id}`);
   },
+
+  // Search documents
+  searchDocuments: async (query: string): Promise<Document[]> => {
+    const response = await api.get<Document[]>(`/documents/search?query=${encodeURIComponent(query)}`);
+    return response.data;
+  },
 }; 
