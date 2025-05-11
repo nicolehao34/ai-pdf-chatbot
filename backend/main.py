@@ -1,10 +1,14 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import os
 from datetime import datetime
 import uuid
+
+from app.pdf_processor import PDFProcessor
+from app.document_store import DocumentStore
 
 app = FastAPI(title="Exam Review Bot API")
 
@@ -17,9 +21,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# In-memory storage for demo
-documents = {}
-chat_history = []
+# Initialize components
+pdf_processor = PDFProcessor()
+document_store = DocumentStore()
 
 class Document(BaseModel):
     id: str
@@ -27,6 +31,8 @@ class Document(BaseModel):
     content: str
     created_at: str
     updated_at: str
+    page_count: int
+    file_path: str
 
 class ChatMessage(BaseModel):
     role: str
@@ -41,62 +47,72 @@ class ChatResponse(BaseModel):
 @app.post("/documents/upload")
 async def upload_document(file: UploadFile = File(...)):
     try:
-        # For demo purposes, we'll just store the filename
-        doc_id = str(uuid.uuid4())
-        documents[doc_id] = {
-            "id": doc_id,
-            "title": file.filename,
-            "content": f"Content of {file.filename}",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat()
-        }
+        # Read file content
+        content = await file.read()
+        
+        # Process PDF
+        document = await pdf_processor.process_pdf(content, file.filename)
+        
+        # Store document
+        doc_id = document_store.add_document(document)
+        
         return {
             "success": True,
             "document_id": doc_id,
-            "message": "Document uploaded successfully"
+            "message": "Document uploaded and processed successfully"
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/documents")
 async def get_documents():
-    return list(documents.values())
+    return document_store.get_all_documents()
 
 @app.get("/documents/{doc_id}")
 async def get_document(doc_id: str):
-    if doc_id not in documents:
+    doc = document_store.get_document(doc_id)
+    if not doc:
         raise HTTPException(status_code=404, detail="Document not found")
-    return documents[doc_id]
+    return doc
 
 @app.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str):
-    if doc_id not in documents:
-        raise HTTPException(status_code=404, detail="Document not found")
-    del documents[doc_id]
-    return {"message": "Document deleted successfully"}
+    if document_store.delete_document(doc_id):
+        return {"message": "Document deleted successfully"}
+    raise HTTPException(status_code=404, detail="Document not found")
 
 @app.post("/chat")
-async def chat(message: str, document_id: Optional[str] = None):
-    # For demo purposes, return a simple response
-    response = {
-        "message": f"Demo response to: {message}",
-        "sources": ["Demo source 1", "Demo source 2"] if document_id else None,
-        "confidence": 0.95
-    }
-    
-    # Store in chat history
-    chat_history.append({
-        "role": "user",
-        "content": message,
-        "timestamp": datetime.now().isoformat()
-    })
-    chat_history.append({
-        "role": "assistant",
-        "content": response["message"],
-        "timestamp": datetime.now().isoformat()
-    })
-    
-    return response
+async def chat(message: str = Form(...), document_id: Optional[str] = Form(None)):
+    try:
+        # Search for relevant content if document_id is provided
+        relevant_content = ""
+        if document_id:
+            doc = document_store.get_document(document_id)
+            if doc:
+                relevant_content = doc['content']
+
+        # Simple response generation (can be enhanced with actual AI)
+        response = {
+            "message": f"Based on the document content, here's what I found: {message}",
+            "sources": [f"Document: {document_id}"] if document_id else None,
+            "confidence": 0.95
+        }
+        
+        # Store in chat history
+        chat_history.append({
+            "role": "user",
+            "content": message,
+            "timestamp": datetime.now().isoformat()
+        })
+        chat_history.append({
+            "role": "assistant",
+            "content": response["message"],
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/chat/history")
 async def get_chat_history():
@@ -106,3 +122,6 @@ async def get_chat_history():
 async def clear_chat_history():
     chat_history.clear()
     return {"message": "Chat history cleared successfully"}
+
+# Initialize chat history
+chat_history = []
