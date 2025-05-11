@@ -152,3 +152,10 @@ Exam Review Bot (ERB) is a custom intelligent retrieval and hybrid RAG system fo
 - Chat interface
 - Progress tracking
 - User authentication
+- 
+
+# To-Dos
+- ~~Setting up frontend~~
+- ~~Backend frontend integration API service layer~~
+- Get frontend + backend demo working PERFECTLY
+- Figure out how to insert interative demo in personal website
