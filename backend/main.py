@@ -9,6 +9,7 @@ import uuid
 
 from app.pdf_processor import PDFProcessor
 from app.document_store import DocumentStore
+from app.ai_service import AIService
 
 app = FastAPI(title="Exam Review Bot API")
 
@@ -24,6 +25,7 @@ app.add_middleware(
 # Initialize components
 pdf_processor = PDFProcessor()
 document_store = DocumentStore()
+ai_service = AIService()
 
 class Document(BaseModel):
     id: str
@@ -52,6 +54,9 @@ async def upload_document(file: UploadFile = File(...)):
         
         # Process PDF
         document = await pdf_processor.process_pdf(content, file.filename)
+        
+        # Process document with AI service
+        ai_service.process_document(document['content'])
         
         # Store document
         doc_id = document_store.add_document(document)
@@ -84,19 +89,8 @@ async def delete_document(doc_id: str):
 @app.post("/chat")
 async def chat(message: str = Form(...), document_id: Optional[str] = Form(None)):
     try:
-        # Search for relevant content if document_id is provided
-        relevant_content = ""
-        if document_id:
-            doc = document_store.get_document(document_id)
-            if doc:
-                relevant_content = doc['content']
-
-        # Simple response generation (can be enhanced with actual AI)
-        response = {
-            "message": f"Based on the document content, here's what I found: {message}",
-            "sources": [f"Document: {document_id}"] if document_id else None,
-            "confidence": 0.95
-        }
+        # Get AI response
+        response = await ai_service.get_response(message)
         
         # Store in chat history
         chat_history.append({
@@ -121,6 +115,7 @@ async def get_chat_history():
 @app.delete("/chat/history")
 async def clear_chat_history():
     chat_history.clear()
+    ai_service.clear_memory()
     return {"message": "Chat history cleared successfully"}
 
 # Initialize chat history
